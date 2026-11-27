@@ -17,7 +17,7 @@ import (
 
 	"github.com/alessio/shellescape"
 	"github.com/fatih/color"
-	"github.com/karolba/gparallel/chann"
+	"github.com/nobl9/gparallel/chann"
 	"github.com/pkg/term/termios"
 	"golang.org/x/exp/slices"
 	"golang.org/x/term"

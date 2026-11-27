@@ -1,4 +1,4 @@
-module github.com/karolba/gparallel
+module github.com/nobl9/gparallel
 
 go 1.19
 

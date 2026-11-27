@@ -196,9 +196,10 @@ func (ch *Chann[T]) unboundedProcessing() {
 	}
 }
 
-// unboundedTerminate terminates the unbounde channel's processing loop
-// and make sure all unprocessed elements either be consumed if there is
-// a pending receiver.
+// unboundedTerminate terminates the unbounded channel's processing loop after
+// every unprocessed element has been received. The send blocks until the
+// receiver takes the element, so the receiver must drain the channel until it
+// is closed, as displaySequentially in gparallel does.
 func (ch *Chann[T]) unboundedTerminate() {
 	var nilT T
 
@@ -207,13 +208,7 @@ func (ch *Chann[T]) unboundedTerminate() {
 		ch.q = append(ch.q, e)
 	}
 	for len(ch.q) > 0 {
-		select {
-		case ch.out <- ch.q[0]:
-		// The default branch exists because we need guarantee
-		// the loop can terminate. If there is a receiver, the
-		// first case will ways be selected. See #3.
-		default:
-		}
+		ch.out <- ch.q[0]
 		ch.q[0] = nilT // de-reference earlier to help GC
 		ch.q = ch.q[1:]
 	}
