@@ -133,6 +133,13 @@ var recursiveTaskLimitClient = onceValue(func() (client struct {
 		conn, err := dialer.DialContext(ctx, "unix", serverSocketPath)
 		mutex.Lock()
 
+		if ctx.Err() != nil {
+			if conn != nil {
+				haveToClose("connection to master gparallel", conn)
+			}
+			return
+		}
+
 		processQueueData.conn = conn
 
 		if errors.Is(err, context.Canceled) || errors.Is(err, net.ErrClosed) {
