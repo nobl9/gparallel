@@ -23,10 +23,22 @@ func TestMain(m *testing.M) {
 // and prints every output when many short commands finish while others still
 // wait for a free slot. The failure is a race, so one run is not enough.
 func TestManyShortCommandsWithoutATerminal(t *testing.T) {
-	const runs = 20
-	const commands = 300
+	assertEveryRunPrintsEveryCommand(t, 20, 32, 300)
+}
 
-	args := []string{"-P", "32", "echo", ":::"}
+// TestManyShortCommandsOneAtATime verifies that gparallel does not exit early
+// when it may run only one command at once, so that every other command waits
+// for the one before it. The failure is a race, so one run is not enough.
+func TestManyShortCommandsOneAtATime(t *testing.T) {
+	assertEveryRunPrintsEveryCommand(t, 20, 1, 100)
+}
+
+// assertEveryRunPrintsEveryCommand runs gparallel repeatedly without a terminal
+// and fails the test on the first run that fails or loses output.
+func assertEveryRunPrintsEveryCommand(t *testing.T, runs, maxConcurrent, commands int) {
+	t.Helper()
+
+	args := []string{"-P", strconv.Itoa(maxConcurrent), "echo", ":::"}
 	for i := 1; i <= commands; i++ {
 		args = append(args, strconv.Itoa(i))
 	}
