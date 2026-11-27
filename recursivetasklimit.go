@@ -133,6 +133,13 @@ var recursiveTaskLimitClient = onceValue(func() (client struct {
 		conn, err := dialer.DialContext(ctx, "unix", serverSocketPath)
 		mutex.Lock()
 
+		if ctx.Err() != nil {
+			if conn != nil {
+				haveToClose("connection to master gparallel", conn)
+			}
+			return
+		}
+
 		processQueueData.conn = conn
 
 		if errors.Is(err, context.Canceled) || errors.Is(err, net.ErrClosed) {
@@ -142,7 +149,7 @@ var recursiveTaskLimitClient = onceValue(func() (client struct {
 		}
 
 		mutex.Unlock()
-		ch := make(chan error)
+		ch := make(chan error, 1)
 		go func() { ch <- readOneByte(conn) }()
 		select {
 		case <-ctx.Done():
@@ -151,7 +158,7 @@ var recursiveTaskLimitClient = onceValue(func() (client struct {
 		}
 		mutex.Lock()
 
-		if errors.Is(err, context.Canceled) || errors.Is(err, net.ErrClosed) {
+		if ctx.Err() != nil {
 			return
 		} else if err != nil {
 			log.Fatalf("Couldn't read from unix socket '%s': %v\n", serverSocketPath, err)
@@ -170,12 +177,13 @@ var recursiveTaskLimitClient = onceValue(func() (client struct {
 			_, toClose = findInQueue(zombieProcess)
 		}
 
+		if toClose != nil && toClose.cancel != nil {
+			toClose.cancel()
+		}
 		if toClose != nil && toClose.conn != nil {
 			_ = writeOneByte(toClose.conn)
 			haveToClose("connection to master gparallel", toClose.conn)
 			toClose.conn = nil
-		} else if toClose != nil && toClose.cancel != nil {
-			toClose.cancel()
 		}
 
 		idx, _ := findInQueue(zombieProcess)
